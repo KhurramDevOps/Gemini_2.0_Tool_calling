@@ -6,6 +6,7 @@ from langchain.agents import initialize_agent, AgentType
 import os
 import streamlit as st
 
+from tools import  calculator,get_distance,get_stock_price,get_weather,latest_news,google_search_tool
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,53 +22,106 @@ GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 #   print("function is called")
 #   return a * b
 
-@tool
-def calculator(expression: str) -> float:
-    """
-    Evaluates a given mathematical expression.
 
-    This function takes a mathematical expression as a string, evaluates it, and returns the result.
-    It handles basic arithmetic, parentheses, and more complex mathematical calculations.
-
-    Args:
-        expression (str): A mathematical expression to evaluate, e.g., "3 + 5 * (2 - 8)".
-
-    Returns:
-        Union[float, str]: The result of the evaluated expression, or an error message if invalid.
-
-    Example:
-        >>> evaluate_expression("3 + 5 * 2")
-        13.0
-        >>> evaluate_expression("2 / 0")
-        'Error: Division by zero.'
-        >>> evaluate_expression("invalid + expression")
-        'Error: Invalid input.'
-    """
-    try:
-        # Use eval to compute the result securely
-        result = eval(expression, {"__builtins__": None}, {})
-        if isinstance(result, (int, float)):  # Ensure result is a number
-            return result
-        else:
-            return "Error: Invalid mathematical expression."
-    except ZeroDivisionError:
-        return "Error: Division by zero."
-    except Exception:
-        return "Error: Invalid input."
-
-tools = [calculator]
+tools = [calculator,latest_news,get_stock_price,get_weather,google_search_tool,get_distance]
 
 
 
 llm = ChatGoogleGenerativeAI(model = "gemini-2.0-flash-exp", api_key=GOOGLE_API_KEY)
 agent = initialize_agent(tools, llm, agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION, verbose=False)
 
-st.title("Gemini Tool Calling")
+st.set_page_config(page_title="Practice Tool Calling App", layout="wide", initial_sidebar_state="expanded")
 
-st.write("welcome to my app")
-user_input = st.text_input("Ask any thing")
+# Custom CSS for more styling
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: white;
+        font-family: 'Arial', sans-serif;
+    }
 
-if st.button("Ask"):
-    response = agent.invoke(user_input)
-    st.write(response["output"])  # Display the response from the model
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 15px 32px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        border-radius: 8px;
+        width : 100%;
+    }
+    .stButton>button:hover {
+        background-color: #45a049;
+    }
+    .stTextInput>div>div>input {
+        font-size: 16px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        width: 100%;
+    }
+    .sidebar .sidebar-content {
+        background-color: #e0f7fa;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    h1 {
+        color: #333;
+        font-size: 40px;
+        text-align: center;
+    }
+    h2 {
+        color: #555;
+        font-size: 28px;
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
+
+# Title of the app
+st.title("AI-Powered Tool Assistant 🤖")
+
+# Sidebar for navigation
+st.sidebar.title("Available Tools")
+tools = [calculator,
+         latest_news,
+         get_stock_price,
+         get_weather,
+         google_search_tool,
+         get_distance]
+
+
+
+for tool in tools:
+    st.sidebar.write(f"- {tool.name}")
+
+
+# Add a brief description on the main page
+st.markdown("""
+    <h2>Welcome to the AI-Powered Tool Assistant 🤖</h2>
+    <p>This app uses a powerful language model to help you access various tools. 
+    Simply type your question below and let the app automatically select the right tool for you!</p>
+""", unsafe_allow_html=True)
+
+# Text input for user to ask a question
+user_input = st.text_input("Ask anything", placeholder="Type your question here...")
+
+# Button for submission
+if st.button("Submit"):
+    # Pass the user input to your LLM to decide the appropriate tool and generate a response
+    result = agent.invoke({"input": user_input})
+    
+    # Display the result from the LLM
+    st.write(result["output"])
+
+
+
+
+
+
+# # Button to start listening
+# if st.button("Start Speaking"):
+#     with st.spinner("Listening..."):
+#         handle_audio_input(tool_input="start")
 
