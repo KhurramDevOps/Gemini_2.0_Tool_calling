@@ -1,4 +1,5 @@
 from langchain_core.tools import tool
+import requests
 
 @tool(parse_docstring=True)
 def calculator(expression: str) -> float:
@@ -34,32 +35,51 @@ def calculator(expression: str) -> float:
     except Exception:
         return "Error: Invalid input."
     
-import requests
 @tool(parse_docstring=True)
-def latest_news(api_key: str = "c75303be293245a88968d6383fe4e32e", country: str = "us", category: str = "general", limit: int = 5):
+def latest_news(api_key: str = "c75303be293245a88968d6383fe4e32e", 
+                country: str = None, category: str = None, query: str = None, limit: int = 5):
     """
     Fetch the latest news headlines using the NewsAPI.
 
     Args:
         api_key (str): Your NewsAPI key.
-        country (str): The country for news headlines (default is "us").
-        category (str): The category of news (default is "general").
+        country (str, optional): The country for news headlines (e.g., "us", "pk"). Default is None.
+        category (str, optional): The category of news (e.g., "technology", "sports"). Default is None.
+        query (str, optional): Keywords to search for specific news (e.g., "California fire"). Default is None.
         limit (int): Number of headlines to fetch (default is 5).
 
     Returns:
-        list: A list of the latest news headlines.
+        list: A list of the latest news headlines or error messages.
 
     Example:
-        >>> fetch_latest_news(api_key="your_api_key_here", country="Pakistan", category="technology", limit=3)
+        >>> latest_news(api_key="your_api_key_here", country="us", category="technology", limit=3)
+        ['Headline 1', 'Headline 2', 'Headline 3']
+        >>> latest_news(api_key="your_api_key_here", query="California fire", limit=3)
         ['Headline 1', 'Headline 2', 'Headline 3']
     """
-    base_url = "https://newsapi.org/v2/top-headlines"
-    params = {
-        "apiKey": api_key,
-        "country": country,
-        "category": category,
-        "pageSize": limit,
-    }
+    # If no parameters are provided, switch to a default behavior
+    if not (country or category or query):
+        base_url = "https://newsapi.org/v2/everything"
+        params = {
+            "apiKey": api_key,
+            "pageSize": limit,
+            "sortBy": "publishedAt"  # Sort by the most recent articles
+        }
+    elif query:
+        base_url = "https://newsapi.org/v2/everything"
+        params = {
+            "apiKey": api_key,
+            "q": query,
+            "pageSize": limit,
+        }
+    else:
+        base_url = "https://newsapi.org/v2/top-headlines"
+        params = {
+            "apiKey": api_key,
+            "country": country,
+            "category": category,
+            "pageSize": limit,
+        }
 
     try:
         response = requests.get(base_url, params=params)
@@ -70,6 +90,7 @@ def latest_news(api_key: str = "c75303be293245a88968d6383fe4e32e", country: str 
         return [f"Error fetching news: {e}"]
     except KeyError:
         return ["Error: Unexpected response structure."]
+
     
 @tool(parse_docstring=True)
 def get_stock_price(symbol: str) -> str:
